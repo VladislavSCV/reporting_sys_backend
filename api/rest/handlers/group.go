@@ -5,6 +5,7 @@ import (
 	"github.com/VladislavSCV/internal/core"
 	"github.com/VladislavSCV/internal/models"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"net/http"
 	"strconv"
@@ -20,11 +21,11 @@ import (
 // @Success 200 {array} models.Group "Успешный ответ"  example([{"id": 1, "name": "Group A"}, {"id": 2, "name": "Group B"}])
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/group [get]
-func GetGroups(db *sql.DB) gin.HandlerFunc {
+func GetGroups(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log.Printf("Получен запрос на получение списка всех групп")
 
-		groups, err := core.GetAllGroups(db)
+		groups, err := core.GetAllGroups(db, cache)
 		if err != nil {
 			log.Printf("Ошибка при получении списка групп: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
@@ -43,12 +44,12 @@ func GetGroups(db *sql.DB) gin.HandlerFunc {
 // @Accept  json
 // @Produce  json
 // @Param   id  path  int  true  "ID группы"  example(1)
-// @Success 200 {object} models.Group "Успешный ответ"
+// @Success 200 {object} models.GroupDetail "Успешный ответ"
 // @Failure 400 {object} ErrorResponse "Неверный запрос"
 // @Failure 404 {object} ErrorResponse "Группа не найдена"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/group/{id} [get]
-func GetGroupByID(db *sql.DB) gin.HandlerFunc {
+func GetGroupByID(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		groupID := c.Param("id")
 		log.Printf("Получен запрос на получение информации о группе с ID: %s", groupID)
@@ -68,7 +69,7 @@ func GetGroupByID(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		group, err := core.GetGroupByID(db, groupIDInt)
+		group, err := core.GetGroupByID(db, cache, groupIDInt)
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
 				log.Printf("Группа с ID %d не найдена", groupIDInt)
@@ -96,7 +97,7 @@ func GetGroupByID(db *sql.DB) gin.HandlerFunc {
 // @Failure 400 {object} ErrorResponse "Неверный запрос"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/group [post]
-func CreateGroup(db *sql.DB) gin.HandlerFunc {
+func CreateGroup(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var group models.Group
 		if err := c.ShouldBindJSON(&group); err != nil {
@@ -112,7 +113,7 @@ func CreateGroup(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		groupID, err := core.CreateGroup(db, group)
+		groupID, err := core.CreateGroup(db, cache, group)
 		if err != nil {
 			log.Printf("Ошибка при создании группы: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
@@ -139,7 +140,7 @@ func CreateGroup(db *sql.DB) gin.HandlerFunc {
 // @Failure 400 {object} ErrorResponse "Неверный запрос"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/group/{id} [put]
-func UpdateGroup(db *sql.DB) gin.HandlerFunc {
+func UpdateGroup(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		groupID := c.Param("id")
 		log.Printf("Получен запрос на обновление группы с ID: %s", groupID)
@@ -176,7 +177,7 @@ func UpdateGroup(db *sql.DB) gin.HandlerFunc {
 		// Устанавливаем ID группы из параметра запроса
 		group.ID = groupIDInt
 
-		if err := core.UpdateGroup(db, group); err != nil {
+		if err := core.UpdateGroup(db, cache, group); err != nil {
 			log.Printf("Ошибка при обновлении группы: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 			return
@@ -198,7 +199,7 @@ func UpdateGroup(db *sql.DB) gin.HandlerFunc {
 // @Failure 400 {object} ErrorResponse "Неверный запрос"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/group/{id} [delete]
-func DeleteGroup(db *sql.DB) gin.HandlerFunc {
+func DeleteGroup(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		groupID := c.Param("id")
 		log.Printf("Получен запрос на удаление группы с ID: %s", groupID)
@@ -218,7 +219,7 @@ func DeleteGroup(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := core.DeleteGroup(db, groupIDInt); err != nil {
+		if err := core.DeleteGroup(db, cache, groupIDInt); err != nil {
 			log.Printf("Ошибка при удалении группы: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 			return

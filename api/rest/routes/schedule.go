@@ -5,9 +5,10 @@ import (
 	"github.com/VladislavSCV/api/middleware"
 	"github.com/VladislavSCV/api/rest/handlers"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 )
 
-func SetupScheduleRoutes(router *gin.Engine, db *sql.DB) {
+func SetupScheduleRoutes(router *gin.Engine, db *sql.DB, cache *redis.Client) {
 	scheduleGroup := router.Group("/api/schedule")
 	{
 		// Применение rate limiting к маршрутам

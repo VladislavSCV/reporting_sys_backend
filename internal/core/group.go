@@ -1,12 +1,29 @@
 package core
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/VladislavSCV/internal/models"
+	"github.com/go-redis/redis/v8"
+	"time"
 )
 
-func GetAllGroups(db *sql.DB) ([]models.Group, error) {
+func GetAllGroups(db *sql.DB, cache *redis.Client) ([]models.Group, error) {
+	ctx := context.Background()
+	cacheKey := "groups:all"
+
+	// Проверяем кеш
+	cachedGroups, err := cache.Get(ctx, cacheKey).Bytes()
+	if err == nil {
+		var groups []models.Group
+		if err := json.Unmarshal(cachedGroups, &groups); err == nil {
+			return groups, nil
+		}
+	}
+
+	// Если данных нет в кеше, запрашиваем из базы данных
 	var groups []models.Group
 
 	rows, err := db.Query(`
@@ -32,14 +49,33 @@ func GetAllGroups(db *sql.DB) ([]models.Group, error) {
 		return nil, fmt.Errorf("error iterating over groups: %v", err)
 	}
 
+	// Сохраняем данные в кеше
+	groupsJSON, err := json.Marshal(groups)
+	if err == nil {
+		cache.Set(ctx, cacheKey, groupsJSON, 24*time.Hour) // Кешируем на 24 часа
+	}
+
 	return groups, nil
 }
 
-func GetGroupByID(db *sql.DB, groupID int) (*models.GroupDetail, error) {
+func GetGroupByID(db *sql.DB, cache *redis.Client, groupID int) (*models.GroupDetail, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("group:%d", groupID)
+
+	// Проверяем кеш
+	cachedGroup, err := cache.Get(ctx, cacheKey).Bytes()
+	if err == nil {
+		var group models.GroupDetail
+		if err := json.Unmarshal(cachedGroup, &group); err == nil {
+			return &group, nil
+		}
+	}
+
+	// Если данных нет в кеше, запрашиваем из базы данных
 	var group models.GroupDetail
 
 	// Получаем основную информацию о группе
-	err := db.QueryRow(`
+	err = db.QueryRow(`
         SELECT id, name, created_at, updated_at
         FROM groups
         WHERE id = $1
@@ -100,10 +136,17 @@ func GetGroupByID(db *sql.DB, groupID int) (*models.GroupDetail, error) {
 		return nil, fmt.Errorf("error iterating over schedule: %v", err)
 	}
 
+	// Сохраняем данные в кеше
+	groupJSON, err := json.Marshal(group)
+	if err == nil {
+		cache.Set(ctx, cacheKey, groupJSON, 24*time.Hour) // Кешируем на 24 часа
+	}
+
 	return &group, nil
 }
 
-func CreateGroup(db *sql.DB, group models.Group) (int, error) {
+func CreateGroup(db *sql.DB, cache *redis.Client, group models.Group) (int, error) {
+	ctx := context.Background()
 	var groupID int
 
 	err := db.QueryRow(`
@@ -115,10 +158,15 @@ func CreateGroup(db *sql.DB, group models.Group) (int, error) {
 		return 0, fmt.Errorf("failed to create group: %v", err)
 	}
 
+	// Инвалидируем кеш
+	cache.Del(ctx, "groups:all")
+
 	return groupID, nil
 }
 
-func UpdateGroup(db *sql.DB, group models.Group) error {
+func UpdateGroup(db *sql.DB, cache *redis.Client, group models.Group) error {
+	ctx := context.Background()
+
 	_, err := db.Exec(`
         UPDATE groups
         SET name = $1, updated_at = NOW()
@@ -128,14 +176,24 @@ func UpdateGroup(db *sql.DB, group models.Group) error {
 		return fmt.Errorf("failed to update group: %v", err)
 	}
 
+	// Инвалидируем кеш
+	cache.Del(ctx, fmt.Sprintf("group:%d", group.ID))
+	cache.Del(ctx, "groups:all")
+
 	return nil
 }
 
-func DeleteGroup(db *sql.DB, groupID int) error {
+func DeleteGroup(db *sql.DB, cache *redis.Client, groupID int) error {
+	ctx := context.Background()
+
 	_, err := db.Exec("DELETE FROM groups WHERE id = $1", groupID)
 	if err != nil {
 		return fmt.Errorf("failed to delete group: %v", err)
 	}
+
+	// Инвалидируем кеш
+	cache.Del(ctx, fmt.Sprintf("group:%d", groupID))
+	cache.Del(ctx, "groups:all")
 
 	return nil
 }

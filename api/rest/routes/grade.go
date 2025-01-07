@@ -5,9 +5,10 @@ import (
 	"github.com/VladislavSCV/api/middleware"
 	"github.com/VladislavSCV/api/rest/handlers"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 )
 
-func SetupGradeRoutes(router *gin.Engine, db *sql.DB) {
+func SetupGradeRoutes(router *gin.Engine, db *sql.DB, cache *redis.Client) {
 	gradeGroup := router.Group("/api/grades")
 	{
 		// Применение rate limiting к маршрутам

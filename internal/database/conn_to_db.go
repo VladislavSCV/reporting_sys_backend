@@ -5,26 +5,26 @@ import (
 	"fmt"
 	_ "github.com/lib/pq" // Драйвер для PostgreSQL
 	"log"
+	"os"
 )
 
 var DB *sql.DB
 
 func ConnectDB() (*sql.DB, error) {
-	connStr := "postgresql://test_db_mvaz_user:NgcEd82NG6iHSgqfwhkhPukcnsBHC0c4@dpg-cttsnalumphs73ei09c0-a.oregon-postgres.render.com/test_db_mvaz"
+	// Подключение к базе данных
+	connStr := os.Getenv("POSTGRES")
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	defer db.Close()
 
-	//DB = db
-
-	// Test the database connection
+	// Проверка соединения с базой данных
 	if err := db.Ping(); err != nil {
 		log.Fatalf("Failed to ping the database: %v", err)
 	}
 
 	fmt.Println("Successfully connected to the database!")
-
+	fmt.Println("Database connection:", db)
 	return db, nil
 }

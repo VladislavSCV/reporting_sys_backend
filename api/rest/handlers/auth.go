@@ -7,24 +7,13 @@ import (
 	"github.com/VladislavSCV/internal/utils"
 	"github.com/VladislavSCV/pkg"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"net/http"
 	"time"
 )
 
-// Login godoc
-// @Summary Вход в систему
-// @Description Аутентификация пользователя и получение токена
-// @Tags Auth
-// @Accept  json
-// @Produce  json
-// @Param   user  body  models.User  true  "Данные для входа"  example({"login": "user123", "password": "password123"})
-// @Success 200 {object} LoginResponse "Успешный ответ"
-// @Failure 400 {object} ErrorResponse "Неверный запрос"
-// @Failure 401 {object} ErrorResponse "Неверные учетные данные"
-// @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
-// @Router /api/auth/login [post]
-func Login(db *sql.DB) gin.HandlerFunc {
+func Login(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var user models.User
 		if err := c.ShouldBindJSON(&user); err != nil {
@@ -40,7 +29,7 @@ func Login(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		dbUser, err := core.AuthenticateUser(db, user.Login, user.Password)
+		dbUser, err := core.AuthenticateUser(db, cache, user.Login, user.Password)
 		if err != nil {
 			log.Printf("Ошибка аутентификации пользователя: %v", err)
 			c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Invalid credentials"})
@@ -158,7 +147,7 @@ func Verify(db *sql.DB) gin.HandlerFunc {
 // @Failure 401 {object} ErrorResponse "Пользователь не аутентифицирован"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/auth [get]
-func GetCurrentUser(db *sql.DB) gin.HandlerFunc {
+func GetCurrentUser(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, exists := c.Get("userID")
 		if !exists {
@@ -174,7 +163,7 @@ func GetCurrentUser(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		user, err := core.GetCurrentUser(db, userIDInt)
+		user, err := core.GetCurrentUser(db, cache, userIDInt)
 		if err != nil {
 			log.Printf("Ошибка получения информации о пользователе: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})

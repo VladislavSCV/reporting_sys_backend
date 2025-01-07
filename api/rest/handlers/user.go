@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/VladislavSCV/internal/core"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,11 +20,11 @@ import (
 // @Success 200 {array} models.User "Успешный ответ"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/user [get]
-func GetUsers(db *sql.DB) gin.HandlerFunc {
+func GetUsers(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log.Printf("Получен запрос на получение списка всех пользователей")
 
-		users, err := core.GetAllUsers(db)
+		users, err := core.GetAllUsers(db, cache)
 		if err != nil {
 			log.Printf("Ошибка при получении списка пользователей: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
@@ -44,11 +45,11 @@ func GetUsers(db *sql.DB) gin.HandlerFunc {
 // @Success 200 {array} models.User "Успешный ответ"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/user/students [get]
-func GetStudents(db *sql.DB) gin.HandlerFunc {
+func GetStudents(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log.Printf("Получен запрос на получение списка студентов")
 
-		students, err := core.GetStudents(db)
+		students, err := core.GetStudents(db, cache)
 		if err != nil {
 			log.Printf("Ошибка при получении списка студентов: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
@@ -69,11 +70,11 @@ func GetStudents(db *sql.DB) gin.HandlerFunc {
 // @Success 200 {array} models.User "Успешный ответ"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/user/teachers [get]
-func GetTeachers(db *sql.DB) gin.HandlerFunc {
+func GetTeachers(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		log.Printf("Получен запрос на получение списка преподавателей")
 
-		teachers, err := core.GetTeachers(db)
+		teachers, err := core.GetTeachers(db, cache)
 		if err != nil {
 			log.Printf("Ошибка при получении списка преподавателей: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
@@ -97,7 +98,7 @@ func GetTeachers(db *sql.DB) gin.HandlerFunc {
 // @Failure 404 {object} ErrorResponse "Пользователь не найден"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/user/{id} [get]
-func GetUserByID(db *sql.DB) gin.HandlerFunc {
+func GetUserByID(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.Param("id")
 		log.Printf("Получен запрос на получение информации о пользователе с ID: %s", userID)
@@ -117,7 +118,7 @@ func GetUserByID(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		user, err := core.GetUserByID(db, userIDInt)
+		user, err := core.GetUserByID(db, cache, userIDInt)
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") {
 				log.Printf("Пользователь с ID %d не найден", userIDInt)
@@ -146,7 +147,7 @@ func GetUserByID(db *sql.DB) gin.HandlerFunc {
 // @Failure 400 {object} ErrorResponse "Неверный запрос"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/user/{id} [put]
-func UpdateUser(db *sql.DB) gin.HandlerFunc {
+func UpdateUser(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.Param("id")
 		log.Printf("Получен запрос на обновление пользователя с ID: %s", userID)
@@ -188,7 +189,7 @@ func UpdateUser(db *sql.DB) gin.HandlerFunc {
 		// Устанавливаем ID пользователя из параметра запроса
 		updates["id"] = userIDInt
 
-		if err := core.UpdateUser(db, updates); err != nil {
+		if err := core.UpdateUser(db, cache, updates); err != nil {
 			log.Printf("Ошибка при обновлении пользователя: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 			return
@@ -210,7 +211,7 @@ func UpdateUser(db *sql.DB) gin.HandlerFunc {
 // @Failure 400 {object} ErrorResponse "Неверный запрос"
 // @Failure 500 {object} ErrorResponse "Внутренняя ошибка сервера"
 // @Router /api/user/{id} [delete]
-func DeleteUser(db *sql.DB) gin.HandlerFunc {
+func DeleteUser(db *sql.DB, cache *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID := c.Param("id")
 		log.Printf("Получен запрос на удаление пользователя с ID: %s", userID)
@@ -230,7 +231,7 @@ func DeleteUser(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		if err := core.DeleteUser(db, userIDInt); err != nil {
+		if err := core.DeleteUser(db, cache, userIDInt); err != nil {
 			log.Printf("Ошибка при удалении пользователя: %v", err)
 			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
 			return

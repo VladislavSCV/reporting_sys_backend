@@ -5,9 +5,10 @@ import (
 	"github.com/VladislavSCV/api/middleware"
 	"github.com/VladislavSCV/api/rest/handlers"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis/v8"
 )
 
-func SetupAttendanceRoutes(router *gin.Engine, db *sql.DB) {
+func SetupAttendanceRoutes(router *gin.Engine, db *sql.DB, cache *redis.Client) {
 	attendanceGroup := router.Group("/api/attendance")
 	{
 		// Применение rate limiting к маршрутам

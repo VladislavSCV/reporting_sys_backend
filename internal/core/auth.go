@@ -1,13 +1,17 @@
 package core
 
 import (
+	"context"
 	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/VladislavSCV/internal/models"
+	"github.com/go-redis/redis/v8"
 	"golang.org/x/crypto/argon2"
+	"time"
 )
 
 func RegisterUser(db *sql.DB, user models.User) (int, error) {
@@ -40,28 +44,30 @@ func RegisterUser(db *sql.DB, user models.User) (int, error) {
 	return userID, nil
 }
 
-func AuthenticateUser(db *sql.DB, login, password string) (*models.User, error) {
-	var user models.User
+func AuthenticateUser(db *sql.DB, cache *redis.Client, login, password string) (*models.User, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("user:%s", login)
 
-	// Получение данных пользователя
-	err := db.QueryRow(
-		`SELECT id, first_name, middle_name, last_name, role_id, group_id, login, password, salt, created_at, updated_at 
-		 FROM users 
-		 WHERE login = $1`,
-		login,
-	).Scan(
-		&user.ID, &user.FirstName, &user.MiddleName, &user.LastName, &user.RoleID, &user.GroupID,
-		&user.Login, &user.Password, &user.Salt, &user.CreatedAt, &user.UpdatedAt,
-	)
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("user not found")
-	} else if err != nil {
-		return nil, fmt.Errorf("database error: %v", err)
+	// Проверяем кеш
+	cachedUser, err := cache.Get(ctx, cacheKey).Bytes()
+	if err == nil {
+		var user models.User
+		if err := json.Unmarshal(cachedUser, &user); err == nil {
+			return &user, nil
+		}
 	}
 
-	// Проверка пароля
-	if isValid, err := CheckPasswordHash(password, user.Password, user.Salt); err != nil || !isValid {
-		return nil, fmt.Errorf("invalid password")
+	// Если данных нет в кеше, запрашиваем из базы данных
+	var user models.User
+	row := db.QueryRow("SELECT id, login, password, role_id FROM users WHERE login = $1", login)
+	if err := row.Scan(&user.ID, &user.Login, &user.Password, &user.RoleID); err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %v", err)
+	}
+
+	// Сохраняем данные в кеше
+	userJSON, err := json.Marshal(user)
+	if err == nil {
+		cache.Set(ctx, cacheKey, userJSON, 24*time.Hour) // Кешируем на 24 часа
 	}
 
 	return &user, nil
@@ -102,15 +108,30 @@ func CheckPasswordHash(password, hashStr, saltStr string) (bool, error) {
 	return true, nil
 }
 
-func GetCurrentUser(db *sql.DB, userID int) (*models.User, error) {
-	var user models.User
+func GetCurrentUser(db *sql.DB, cache *redis.Client, userID int) (*models.User, error) {
+	ctx := context.Background()
+	cacheKey := fmt.Sprintf("user:%d", userID)
 
-	err := db.QueryRow(
-		"SELECT id, first_name, middle_name, last_name, role_id, group_id, login, created_at, updated_at FROM users WHERE id = $1",
-		userID,
-	).Scan(&user.ID, &user.FirstName, &user.MiddleName, &user.LastName, &user.RoleID, &user.GroupID, &user.Login, &user.CreatedAt, &user.UpdatedAt)
-	if err != nil {
-		return nil, err
+	// Проверяем кеш
+	cachedUser, err := cache.Get(ctx, cacheKey).Bytes()
+	if err == nil {
+		var user models.User
+		if err := json.Unmarshal(cachedUser, &user); err == nil {
+			return &user, nil
+		}
+	}
+
+	// Если данных нет в кеше, запрашиваем из базы данных
+	var user models.User
+	row := db.QueryRow("SELECT id, login, first_name, last_name, role_id, group_id, created_at, updated_at FROM users WHERE id = $1", userID)
+	if err := row.Scan(&user.ID, &user.Login, &user.FirstName, &user.LastName, &user.RoleID, &user.GroupID, &user.CreatedAt, &user.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("failed to get user: %v", err)
+	}
+
+	// Сохраняем данные в кеше
+	userJSON, err := json.Marshal(user)
+	if err == nil {
+		cache.Set(ctx, cacheKey, userJSON, 24*time.Hour) // Кешируем на 24 часа
 	}
 
 	return &user, nil

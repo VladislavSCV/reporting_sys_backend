@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/VladislavSCV/api/rest/routes"
 	_ "github.com/VladislavSCV/docs" // Импортируйте сгенерированную документацию
+	"github.com/VladislavSCV/internal/redis"
 	"github.com/VladislavSCV/pkg"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
@@ -14,9 +15,9 @@ import (
 )
 
 func main() {
+	// Загрузка переменных окружения
 	pkg.LoadEnv()
 
-	// Подключение к базе данных
 	connStr := os.Getenv("POSTGRES")
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -32,21 +33,34 @@ func main() {
 	fmt.Println("Successfully connected to the database!")
 	fmt.Println("Database connection:", db)
 
+	// Подключение к Redis
+	connStrR := os.Getenv("REDIS_CONN_STR")
+	if connStr == "" {
+		log.Fatalf("Redis connection string is not set in environment variables")
+	}
+
+	client, err := redis.ConnToRedis(connStrR)
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+	defer func() {
+		if err := redis.CloseRedis(); err != nil {
+			log.Printf("Failed to close Redis connection: %v", err)
+		}
+	}()
+
 	// Инициализация Gin
 	r := gin.Default()
 
-	// Применение rate limiting ко всем API endpoints
-	//apiGroup := r.Group("/api")
-	//apiGroup.Use(middleware.RateLimiterMiddleware())
+	// Настройка маршрутов
+	routes.SetupAuthRoutes(r, db, client)
+	routes.SetupUserRoutes(r, db, client)
+	routes.SetupGroupRoutes(r, db, client)
+	routes.SetupScheduleRoutes(r, db, client)
+	routes.SetupGradeRoutes(r, db, client)
+	routes.SetupAttendanceRoutes(r, db, client)
 
-	// Передача db в маршруты
-	routes.SetupAuthRoutes(r, db)
-	routes.SetupUserRoutes(r, db)
-	routes.SetupGroupRoutes(r, db)
-	routes.SetupScheduleRoutes(r, db)
-	routes.SetupGradeRoutes(r, db)
-	routes.SetupAttendanceRoutes(r, db)
-
+	// Тестовый маршрут
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "pong"})
 	})
