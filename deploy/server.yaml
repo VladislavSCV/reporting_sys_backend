@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server_api
+  labels:
+    app: server_api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: server_api
+  template:
+    metadata:
+      name: server_api
+      labels:
+        app: server_api
+    spec:
+      containers:
+        - name: server_api
+          image: nginx
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              protocol: TCP
+      restartPolicy: Always
+      

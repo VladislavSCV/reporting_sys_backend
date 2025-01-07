@@ -1,0 +1,1036 @@
+definitions:
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.LoginResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  handlers.SuccessResponse:
+    properties:
+      data:
+        description: Опциональные данные
+      message:
+        type: string
+    type: object
+  handlers.UserResponse:
+    properties:
+      created_at:
+        type: string
+      first_name:
+        type: string
+      group_id:
+        type: integer
+      id:
+        type: integer
+      last_name:
+        type: string
+      login:
+        type: string
+      middle_name:
+        type: string
+      role_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  handlers.VerifyResponse:
+    properties:
+      role_id:
+        type: integer
+      user_id:
+        type: integer
+    type: object
+  models.Attendance:
+    properties:
+      created_at:
+        type: string
+      date:
+        type: string
+      id:
+        type: integer
+      status:
+        description: present, absent, excused
+        type: string
+      student_id:
+        type: integer
+      subject_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.Grade:
+    properties:
+      created_at:
+        type: string
+      date:
+        type: string
+      id:
+        type: integer
+      student_id:
+        type: integer
+      subject_id:
+        type: integer
+      updated_at:
+        type: string
+      value:
+        description: Оценка (2-5)
+        type: integer
+    type: object
+  models.GradeDetail:
+    properties:
+      created_at:
+        type: string
+      date:
+        type: string
+      id:
+        type: integer
+      student_id:
+        type: integer
+      student_name:
+        type: string
+      subject_name:
+        type: string
+      updated_at:
+        type: string
+      value:
+        type: integer
+    type: object
+  models.Group:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      student_count:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  models.Schedule:
+    properties:
+      created_at:
+        type: string
+      day_of_week:
+        type: integer
+      end_time:
+        type: string
+      group_id:
+        type: integer
+      group_name:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      start_time:
+        type: string
+      subject_id:
+        type: integer
+      subject_name:
+        type: string
+      teacher_id:
+        type: integer
+      teacher_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  models.User:
+    type: object
+info:
+  contact: {}
+paths:
+  /api/attendance:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую запись о посещаемости
+      parameters:
+      - description: Данные о посещаемости
+        in: body
+        name: attendance
+        required: true
+        schema:
+          $ref: '#/definitions/models.Attendance'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Создать отметку посещаемости
+      tags:
+      - Attendance
+  /api/attendance/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую запись о посещаемости
+      parameters:
+      - description: ID посещаемости
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновлённые данные о посещаемости
+        in: body
+        name: attendance
+        required: true
+        schema:
+          $ref: '#/definitions/models.Attendance'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Обновить отметку посещаемости
+      tags:
+      - Attendance
+  /api/attendance/group/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список посещаемости для конкретной группы
+      parameters:
+      - description: ID группы
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.Attendance'
+            type: array
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Посещаемость не найдена
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить посещаемость группы по её ID
+      tags:
+      - Attendance
+  /api/attendance/student/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список посещаемости для конкретного студента
+      parameters:
+      - description: ID студента
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.Attendance'
+            type: array
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Посещаемость не найдена
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить посещаемость студента по его ID
+      tags:
+      - Attendance
+  /api/auth:
+    get:
+      consumes:
+      - application/json
+      description: Получение информации о текущем аутентифицированном пользователе
+      parameters:
+      - description: Токен авторизации
+        example: '"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.UserResponse'
+        "401":
+          description: Пользователь не аутентифицирован
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Информация о текущем пользователе
+      tags:
+      - User
+  /api/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентификация пользователя и получение токена
+      parameters:
+      - description: Данные для входа
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.LoginResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Неверные учетные данные
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Вход в систему
+      tags:
+      - Auth
+  /api/auth/registration:
+    post:
+      consumes:
+      - application/json
+      description: Создание нового пользователя в системе
+      parameters:
+      - description: Данные для регистрации
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Регистрация пользователя
+      tags:
+      - Auth
+  /api/auth/verify:
+    post:
+      consumes:
+      - application/json
+      description: Проверка валидности токена и получение информации о пользователе
+      parameters:
+      - description: Токен авторизации
+        example: '"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."'
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.VerifyResponse'
+        "401":
+          description: Неверный токен
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Проверка токена
+      tags:
+      - Auth
+  /api/grades:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую запись об оценке
+      parameters:
+      - description: Данные об оценке
+        in: body
+        name: grade
+        required: true
+        schema:
+          $ref: '#/definitions/models.Grade'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Создать оценку
+      tags:
+      - Grades
+  /api/grades/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет запись об оценке
+      parameters:
+      - description: ID оценки
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Удалить оценку
+      tags:
+      - Grades
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую запись об оценке
+      parameters:
+      - description: ID оценки
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновлённые данные об оценке
+        in: body
+        name: grade
+        required: true
+        schema:
+          $ref: '#/definitions/models.Grade'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Обновить оценку
+      tags:
+      - Grades
+  /api/grades/group/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список оценок для конкретной группы
+      parameters:
+      - description: ID группы
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.GradeDetail'
+            type: array
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Оценки не найдены
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить оценки группы по её ID
+      tags:
+      - Grades
+  /api/grades/student/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список оценок для конкретного студента
+      parameters:
+      - description: ID студента
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.GradeDetail'
+            type: array
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Оценки не найдены
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить оценки студента по его ID
+      tags:
+      - Grades
+  /api/group:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех групп
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Успешный ответ"  example([{"id": 1, "name": "Group A"}, {"id":
+            2, "name": "Group B"}])'
+          schema:
+            items:
+              $ref: '#/definitions/models.Group'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить список всех групп
+      tags:
+      - Groups
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новую группу
+      parameters:
+      - description: Данные о группе
+        in: body
+        name: group
+        required: true
+        schema:
+          $ref: '#/definitions/models.Group'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Создать группу
+      tags:
+      - Groups
+  /api/group/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет группу по её ID
+      parameters:
+      - description: ID группы
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Удалить группу
+      tags:
+      - Groups
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о конкретной группе
+      parameters:
+      - description: ID группы
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/models.Group'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Группа не найдена
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить информацию о группе по её ID
+      tags:
+      - Groups
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о существующей группе
+      parameters:
+      - description: ID группы
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновлённые данные о группе
+        in: body
+        name: group
+        required: true
+        schema:
+          $ref: '#/definitions/models.Group'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Обновить информацию о группе
+      tags:
+      - Groups
+  /api/schedule:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех занятий
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.Schedule'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить общее расписание
+      tags:
+      - Schedules
+    post:
+      consumes:
+      - application/json
+      description: Создаёт новое занятие в расписании
+      parameters:
+      - description: Данные о занятии
+        in: body
+        name: schedule
+        required: true
+        schema:
+          $ref: '#/definitions/models.Schedule'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Создать занятие
+      tags:
+      - Schedules
+  /api/schedule/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет занятие по его ID
+      parameters:
+      - description: ID занятия
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Удалить занятие
+      tags:
+      - Schedules
+    get:
+      consumes:
+      - application/json
+      description: Возвращает расписание для конкретной группы или преподавателя
+      parameters:
+      - description: ID группы или преподавателя
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.Schedule'
+            type: array
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Расписание не найдено
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить расписание по ID группы/преподавателя
+      tags:
+      - Schedules
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о существующем занятии
+      parameters:
+      - description: ID занятия
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновлённые данные о занятии
+        in: body
+        name: updates
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Обновить занятие
+      tags:
+      - Schedules
+  /api/user:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех пользователей
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить список всех пользователей
+      tags:
+      - Users
+  /api/user/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет пользователя по его ID
+      parameters:
+      - description: ID пользователя
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Удалить пользователя
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о конкретном пользователе
+      parameters:
+      - description: ID пользователя
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Пользователь не найден
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить информацию о пользователе по его ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Обновляет информацию о существующем пользователе
+      parameters:
+      - description: ID пользователя
+        example: 1
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновлённые данные о пользователе
+        in: body
+        name: updates
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Неверный запрос
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Обновить информацию о пользователе
+      tags:
+      - Users
+  /api/user/students:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех студентов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить список студентов
+      tags:
+      - Users
+  /api/user/teachers:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех преподавателей
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешный ответ
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Получить список преподавателей
+      tags:
+      - Users
+swagger: "2.0"
